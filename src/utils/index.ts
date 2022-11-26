@@ -1,9 +1,10 @@
 /* eslint-disable prefer-const */
-import { BigInt, BigDecimal, ethereum } from '@graphprotocol/graph-ts'
+import { BigInt, BigDecimal, ethereum , log} from '@graphprotocol/graph-ts'
 import { Transaction } from '../types/schema'
 import { ONE_BI, ZERO_BI, ZERO_BD, ONE_BD } from '../utils/constants'
 
 export function exponentToBigDecimal(decimals: BigInt): BigDecimal {
+    log.info("[exponentToBigDecimal] decimals:{}",[decimals.toString()])
   let bd = BigDecimal.fromString('1')
   for (let i = ZERO_BI; i.lt(decimals as BigInt); i = i.plus(ONE_BI)) {
     bd = bd.times(BigDecimal.fromString('10'))
@@ -73,11 +74,14 @@ export function convertTokenToDecimal(tokenAmount: BigInt, exchangeDecimals: Big
   if (exchangeDecimals == ZERO_BI) {
     return tokenAmount.toBigDecimal()
   }
-  return tokenAmount.toBigDecimal().div(exponentToBigDecimal(exchangeDecimals))
+  let num = exponentToBigDecimal(exchangeDecimals)
+  log.info("[convertTokenToDecimal]:{}",[num.toString()])
+  return tokenAmount.toBigDecimal().div(num)
 }
 
+
 export function convertEthToDecimal(eth: BigInt): BigDecimal {
-  return eth.toBigDecimal().div(exponentToBigDecimal(18))
+  return eth.toBigDecimal().div(exponentToBigDecimal(BigInt.fromString('18')))
 }
 
 export function loadTransaction(event: ethereum.Event): Transaction {
@@ -87,7 +91,7 @@ export function loadTransaction(event: ethereum.Event): Transaction {
   }
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp
-  transaction.gasUsed = event.transaction.gasUsed
+  transaction.gasUsed = event.receipt!.gasUsed === null ? ZERO_BI:event.receipt!.gasUsed
   transaction.gasPrice = event.transaction.gasPrice
   transaction.save()
   return transaction as Transaction
